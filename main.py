@@ -17,6 +17,7 @@ from langchain_openai import ChatOpenAI
 
 st.set_page_config(page_title="Julenissen", page_icon="🎅")
 st.title("Chat med julenissen")
+st.image("./santa.png", width=300)
 
 ## SECRETS
 
