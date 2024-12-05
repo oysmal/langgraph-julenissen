@@ -73,10 +73,19 @@ def check_naughty_list(name: str, config: RunnableConfig):
 def register_naughty_or_nice(name: str, action: str, config: RunnableConfig):
     """Call with a name and action, to update the naughty or nice score for the name."""
     print("Name and action: ", name, action)
-    res = llm.invoke([("system", f"""Du er julenissen, og du skal oppdatere listen over snille barn. Ranger handlinger som dårlig eller god, på en skala fra -100 til 100, hvor -100 er veldig slemt, og 100 er veldig snilt. Å støvsuge kan for eksempel være 5 poeng, mens si et stygt ord er -5 poeng. Å gi gave til fattige er flere poeng, være i en slåsskamp er flere minuspoeng, osv. Du skal bare returnere tallverdien til handlingen, slik du vurderer den.
+    res = llm.invoke([("system", f"""Du er julenissen, og du skal oppdatere listen over snille barn. Ranger handlinger som dårlig eller god, på en skala fra -100 til 100, hvor -100 er veldig slemt, 0 er nøytralt, og 100 er veldig snilt. Å støvsuge kan for eksempel være 5 poeng, mens si et stygt ord er -5 poeng. Å gi gave til fattige er flere poeng, være i en slåsskamp er flere minuspoeng, osv. Du skal bare returnere tallverdien til handlingen, slik du vurderer den.
 
 Eksempel input: Nils: Jeg har støvsuget.
 Eksempel respons: 5
+
+Eksempel input: Nils: Jeg spiste opp grønnsakene mine.
+Eksempel respons: 5
+
+Eksempel input: Nils: Jeg har spist is.
+Eksempel respons: 0
+
+Eksempel input: Nils: Jeg har kranglet med en venn.
+Eksempel respons: -5
 
 Eksempel input: Nora: Jeg dyttet en person.
 Eksempel respons: -10
