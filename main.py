@@ -18,8 +18,8 @@ from langgraph.checkpoint.memory import MemorySaver
 
 ### Streamlit UI ###
 
-st.set_page_config(page_title="Julenisse-assistent", page_icon="🎅")
-st.title("Julenisse-assistent")
+st.set_page_config(page_title="Julenissen", page_icon="🎅")
+st.title("Chat med julenissen")
 
 ## DB
 
@@ -27,7 +27,23 @@ DB_URI = os.environ.get("DB_URI") or ""
 
 ### LangGraph ###
 
-system_prompt = "Du er en digital versjon av julenissen. Barn kan fortelle deg navnet sitt, ønskelisten sin og eventuelt hva de har gjort som var snilt og slemt. Via tilkoblede verktøy har du tilgang til å sjekke om barn er snille og slemme barn. Du har også tilgang til å registrere gode og slemme ting du blir fortalt om. Dersom du får oppgitt et navn bør du sørge for å generere et verktøy-kall (med mindre du allerede har det i meldingshistorikken). Det har blitt for slitsom å finne ut om hvert enkelt barn er snilt eller slemt, så du baserer deg nå på at alle barn med samme navn er like snill eller slem. På grunn av effektiviseringbehov ber du også alle du snakker med om å si en snill eller slem ting de har gjort i år før de får tilbakemelding på hva de får til jul. Svaret på dette må du huske å registrere på navnet via det riktige verktøyet. Til slutt gir du tilbakemelding om barnet skal få det de ønsker seg. Snille barn får kanskje det de ønsker seg, mens slemme barn får kull."
+greeting_msg = AIMessage(content="""Ho-ho-ho, hallo der, små og store! 🎅✨
+
+Det er meg, Julenissen – den digitale versjonen, klar for å høre på ønskelistene deres og få en statusrapport på snille og slemme handlinger i år. Jeg må bare si det: Med så mange barn å holde styr på, har jeg nå effektivisert julemagien. Så her er greia:
+
+✅ Alle med samme navn er snille eller slemme sammen. Så hvis du heter Ola og det finnes en annen Ola som har vært skikkelig rampete, må dere snakke sammen om å skjerpe dere. 🙃
+
+✅ Før jeg sjekker hva du får til jul, må du fortelle meg én snill eller slem ting du har gjort i år. Alt blir notert i listen – og ja, jeg sjekker den to ganger!
+
+✅ Snille barn får kanskje det de ønsker seg, mens slemme barn… vel, dere kjenner til kull i strømpen, ikke sant? 🧦🔥
+
+Så kom igjen! Fortell meg navnet ditt, ønskelisten din, og en god eller dårlig gjerning. Husk, du er en ambassadør for navnet ditt, så vær snill mot deg selv og alle andre med samme navn. Ho-ho-ho!
+
+Hvis du vil se hvordan ditt navn ligger an, sjekk listen vår over snille og slemme navn på nettsiden. 🎄
+
+Så! Hva heter du, og hva har du gjort som er snilt og slemt i år? 🎁""")
+
+system_prompt = "Du er en humoristisk og ironisk digital versjon av julenissen, med godt humør, men litt sliten av å holde styr på så mange barn. Barn kan fortelle deg navnet sitt, ønskelisten sin og eventuelt hva de har gjort som var snilt og slemt. Via tilkoblede verktøy har du tilgang til å sjekke om barn er snille og slemme barn. Du har også tilgang til å registrere gode og slemme ting du blir fortalt om. Dersom du får oppgitt et navn bør du sørge for å generere et verktøy-kall (med mindre du allerede har det i meldingshistorikken). Det har blitt for slitsom å finne ut om hvert enkelt barn er snilt eller slemt, så du baserer deg nå på at alle barn med samme navn er like snill eller slem. På grunn av effektiviseringbehov ber du også alle du snakker med om å si en snill eller slem ting de har gjort i år før de får tilbakemelding på hva de får til jul. Svaret på dette må du huske å registrere på navnet via det riktige verktøyet (husk å sende detaljert beskrivelse av hva de har gjort). Dersom du registrerer en god eller dårlig handling må du husk å sjekke listen på nytt. Til slutt gir du tilbakemelding om barnet skal få det de ønsker seg. Snille barn får kanskje det de ønsker seg, mens slemme barn får kull. Fortell alle om den nye måten du holder styr på snille og slemme barn, og husk å oppfordre alle til å være en god representant for navnet sitt. De kan også se de snilleste og slemmeste navnene i listen på denne nettsiden."
 
 llm = ChatOpenAI(model="gpt-4o")
 
@@ -43,17 +59,30 @@ def check_naughty_list(name: str, config: RunnableConfig):
         return "En feil oppstod når jeg sjekket listen"
     try:
         with conn._cursor() as cur:
-            res = cur.execute("SELECT nice_meter from naughty_nice where name=%s", (name,))
-            print("RES:",  res)
+            cur.execute("SELECT nice_meter from naughty_nice where name=%s", (name,))
+            res = cur.fetchall()
+            nice_meter = res[0]["nice_meter"]
+            if float(nice_meter) > 0:
+                return f"{name} er på listen over snille barn."
+            else:
+                return f"{name} er på slemmelisten!"
     except Exception as e:
         print("Error: ", e)
         return "Feil ved å lese listen"
-    return random.choice([True, False])
 
 def register_naughty_or_nice(name: str, action: str, config: RunnableConfig):
     """Call with a name and action, to update the naughty or nice score for the name."""
     print("Name and action: ", name, action)
-    res = llm.invoke([("system", "Du er julenissen, og du skal oppdatere listen over snille barn. Ranger handlinger som dårlig eller god, på en skala fra -100 til 100, hvor -100 er veldig slemt, og 100 er veldig snilt. Å støvsuge kan for eksempel være 5 poeng, mens si et stygt ord er -5 poeng. Å gi gave til fattige er flere poeng, være i en slåsskamp er flere minuspoeng, osv. Du skal bare returnere tallverdien til handlingen, slik du vurderer den."), ("user", action)])
+    res = llm.invoke([("system", f"""Du er julenissen, og du skal oppdatere listen over snille barn. Ranger handlinger som dårlig eller god, på en skala fra -100 til 100, hvor -100 er veldig slemt, og 100 er veldig snilt. Å støvsuge kan for eksempel være 5 poeng, mens si et stygt ord er -5 poeng. Å gi gave til fattige er flere poeng, være i en slåsskamp er flere minuspoeng, osv. Du skal bare returnere tallverdien til handlingen, slik du vurderer den.
+
+Eksempel input: Nils: Jeg har støvsuget.
+Eksempel respons: 5
+
+Eksempel input: Nora: Jeg dyttet en person.
+Eksempel respons: -10
+
+Input: {name}{action}
+Respons, BARE tallverdi:""")])
     nice_score = res.content
     print("Nice score: ", nice_score)
 
@@ -131,12 +160,14 @@ def run_graph(graph: CompiledStateGraph, checkpointer: PostgresSaver):
     print("Thread ID: ", st.session_state.thread_id)
 
     state = graph.get_state(config).values
-    print(state)
-    if not "messages" in state:
-        with st.chat_message("Julenissen"):
-            st.write("Hei, jeg er Julenissen! Hva heter du, og hva ønsker du deg til jul i år?")
-    else:
-        for message in graph.get_state(config).values["messages"]:
+
+    if not "messages" in state or len(state["messages"]) == 0:
+        graph.update_state(config, { "messages": [greeting_msg] })
+        state = graph.get_state(config).values
+
+
+    if "messages" in state:
+        for message in state["messages"]:
             if message.content and isinstance(message, AIMessage):
                 with st.chat_message("Julenissen"):
                     st.write(message.content)
@@ -154,8 +185,7 @@ def run_graph(graph: CompiledStateGraph, checkpointer: PostgresSaver):
         with st.chat_message("Julenissen"):
             response_generator = get_response(graph, user_input, st.session_state.thread_id, checkpointer)
             transformed_response = transform_response_to_text(response_generator)
-            response = st.write_stream(transformed_response)
-
+            st.write_stream(transformed_response)
 
 def run():
     with PostgresSaver.from_conn_string(DB_URI) as checkpointer:
