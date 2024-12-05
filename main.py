@@ -190,17 +190,48 @@ def run_graph(graph: CompiledStateGraph, checkpointer: PostgresSaver):
 
         with st.chat_message("Deg"):
             st.markdown(user_input)
+            st.write("")
 
         with st.chat_message("Julenissen"):
             response_generator = get_response(graph, user_input, st.session_state.thread_id, checkpointer)
             transformed_response = transform_response_to_text(response_generator)
             st.write_stream(transformed_response)
 
+def create_topscores(checkpointer: PostgresSaver):
+    with checkpointer._cursor() as cur:
+        cur.execute("SELECT name, nice_meter FROM naughty_nice where nice_meter > 0 ORDER BY nice_meter DESC LIMIT 10")
+        nice_scores = cur.fetchall()
+        print("Nice scores: ", nice_scores)
+        cur.execute("SELECT name, nice_meter FROM naughty_nice where nice_meter < 0 ORDER BY nice_meter ASC LIMIT 10")
+        naughty_scores = cur.fetchall()
+        print("Naughty scores: ", naughty_scores)
+
+    with st.sidebar:
+        st.markdown("## Topp 10 snille navn")
+        if len(nice_scores) == 0:
+            st.markdown("__Ingen snille barn enda!__")
+
+        i = 1
+        for row in nice_scores:
+            st.markdown(f"**1) {row['name']}** ({row['nice_meter']} poeng)")
+            i += 1
+
+        st.markdown("## Topp 10 slemme navn")
+        if len(naughty_scores) == 0:
+            st.markdown("__Ingen slemme barn enda!__")
+        i = 1
+        for row in naughty_scores:
+            st.markdown(f"**1) {row['name']}** ({row['nice_meter']} poeng)")
+            i += 1
+
+
 def run():
     with PostgresSaver.from_conn_string(DB_URI) as checkpointer:
         checkpointer.setup()
         with checkpointer._cursor() as cur:
             cur.execute("CREATE TABLE IF NOT EXISTS naughty_nice (name TEXT PRIMARY KEY, nice_meter INT, updates INT DEFAULT 1)")
+
+        create_topscores(checkpointer)
 
         graph = graph_builder.compile(checkpointer=checkpointer)
         run_graph(graph, checkpointer)
