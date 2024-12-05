@@ -4,7 +4,6 @@ import streamlit as st
 
 from typing import Annotated
 from typing_extensions import TypedDict
-from psycopg_pool import ConnectionPool
 
 from langgraph.checkpoint.postgres import PostgresSaver
 from langchain_core.runnables import RunnableConfig
@@ -14,7 +13,6 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.graph.message import add_messages
 from langchain_openai import ChatOpenAI
-from langgraph.checkpoint.memory import MemorySaver
 
 ### Streamlit UI ###
 
