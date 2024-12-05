@@ -58,6 +58,9 @@ def check_naughty_list(name: str, config: RunnableConfig):
         with conn._cursor() as cur:
             cur.execute("SELECT nice_meter from naughty_nice where name=%s", (name,))
             res = cur.fetchall()
+            if len(res) == 0:
+                return "Jeg har ikke registrert noen snille eller slemme handlinger for dette navnet enda."
+
             nice_meter = res[0]["nice_meter"]
             if float(nice_meter) > 0:
                 return f"{name} er på listen over snille barn."
@@ -105,7 +108,7 @@ Respons, BARE tallverdi:""")])
 tools = [check_naughty_list, register_naughty_or_nice]
 tool_node = ToolNode(tools)
 
-llm_with_tools = ChatOpenAI(model="gpt-4o").bind_tools(tools)
+llm_with_tools = ChatOpenAI(model="gpt-4o-mini").bind_tools(tools)
 
 def should_call_tool(state: State):
     messages = state["messages"]
