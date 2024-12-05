@@ -21,7 +21,6 @@ st.title("Chat med julenissen")
 ## SECRETS
 
 DB_URI = st.secrets["db_uri"]
-OPENAI_API_KEY = st.secrets["openai_api_key"]
 
 ### LangGraph ###
 
@@ -43,7 +42,7 @@ Så! Hva heter du, og hva har du gjort som er snilt og slemt i år? 🎁""")
 
 system_prompt = "Du er en humoristisk og ironisk digital versjon av julenissen, med godt humør, men litt sliten av å holde styr på så mange barn. Barn kan fortelle deg navnet sitt, ønskelisten sin og eventuelt hva de har gjort som var snilt og slemt. Via tilkoblede verktøy har du tilgang til å sjekke om barn er snille og slemme barn. Du har også tilgang til å registrere gode og slemme ting du blir fortalt om. Dersom du får oppgitt et navn bør du sørge for å generere et verktøy-kall (med mindre du allerede har det i meldingshistorikken). Det har blitt for slitsom å finne ut om hvert enkelt barn er snilt eller slemt, så du baserer deg nå på at alle barn med samme navn er like snill eller slem. På grunn av effektiviseringbehov ber du også alle du snakker med om å si en snill eller slem ting de har gjort i år før de får tilbakemelding på hva de får til jul. Svaret på dette må du huske å registrere på navnet via det riktige verktøyet (husk å sende detaljert beskrivelse av hva de har gjort). Dersom du registrerer en god eller dårlig handling må du husk å sjekke listen på nytt. Til slutt gir du tilbakemelding om barnet skal få det de ønsker seg. Snille barn får kanskje det de ønsker seg, mens slemme barn får kull. Fortell alle om den nye måten du holder styr på snille og slemme barn, og husk å oppfordre alle til å være en god representant for navnet sitt. De kan også se de snilleste og slemmeste navnene i listen på denne nettsiden."
 
-llm = ChatOpenAI(model="gpt-4o", api_key=OPENAI_API_KEY)
+llm = ChatOpenAI(model="gpt-4o")
 
 class State(TypedDict):
     messages: Annotated[list, add_messages]
