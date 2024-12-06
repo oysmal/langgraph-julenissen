@@ -214,7 +214,7 @@ def create_topscores(checkpointer: PostgresSaver):
 
         i = 1
         for row in nice_scores:
-            st.markdown(f"**1) {row['name']}** ({row['nice_meter']} poeng)")
+            st.markdown(f"**{i}) {row['name']}** ({row['nice_meter']} poeng)")
             i += 1
 
         st.markdown("## Topp 10 slemme navn")
@@ -222,7 +222,7 @@ def create_topscores(checkpointer: PostgresSaver):
             st.markdown("__Ingen slemme barn enda!__")
         i = 1
         for row in naughty_scores:
-            st.markdown(f"**1) {row['name']}** ({row['nice_meter']} poeng)")
+            st.markdown(f"**{i}) {row['name']}** ({row['nice_meter']} poeng)")
             i += 1
 
 
