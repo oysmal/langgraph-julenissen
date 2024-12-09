@@ -4,6 +4,7 @@ import streamlit as st
 from typing import Annotated
 from typing_extensions import TypedDict
 
+from langchain_core.prompts import ChatPromptTemplate
 from langgraph.checkpoint.postgres import PostgresSaver
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import AIMessage, HumanMessage
@@ -17,7 +18,7 @@ from langchain_openai import ChatOpenAI
 
 st.set_page_config(page_title="Julenissen", page_icon="🎅")
 st.title("Chat med julenissen")
-st.image("./santa.png", width=300)
+st.image("./santa-liten.png", width=300)
 
 ## SECRETS
 
@@ -25,25 +26,37 @@ DB_URI = st.secrets["db_uri"]
 
 ### LangGraph ###
 
-greeting_msg = AIMessage(content="""Ho-ho-ho, hallo der, små og store! 🎅✨
+greeting_msg = AIMessage(content="""Ho-ho-ho, hei på deg! Jeg er den digitale Julenissen! 🎅✨
 
-Det er meg, Julenissen – den digitale versjonen, klar for å høre på ønskelistene deres og få en statusrapport på snille og slemme handlinger i år. Jeg må bare si det: Med så mange barn å holde styr på, har jeg nå effektivisert julemagien. Så her er greia:
+Med så mange navn og handlinger å holde styr på, har jeg måttet effektivisere ting. Så her er den splitter nye måten jeg driver julens magi på:
 
-✅ Alle med samme navn er snille eller slemme sammen. Så hvis du heter Ola og det finnes en annen Ola som har vært skikkelig rampete, må dere snakke sammen om å skjerpe dere. 🙃
+🎄 Alle med samme fornavn vurderes nå som en gruppe. Det betyr at hvis du heter Per, så er du i samme båt som alle de andre Per-ene der ute – snille som slemme. Så vær en god ambassadør for navnet ditt, ok?
 
-✅ Før jeg sjekker hva du får til jul, må du fortelle meg én snill eller slem ting du har gjort i år. Alt blir notert i listen – og ja, jeg sjekker den to ganger!
+🎄 Jeg har ikke tid til å snoke rundt selv, så før jeg sjekker hva du får til jul, må du fortelle meg om minst én snill eller slem handling du har gjort i år. Det kan være noe fantastisk, eller… vel, noe du kanskje angrer på. Alt går rett på listen, og ja, jeg sjekker den to ganger (det er tross alt jobben min). 📜✔️
 
-✅ Snille barn får kanskje det de ønsker seg, mens slemme barn… vel, dere kjenner til kull i strømpen, ikke sant? 🧦🔥
+🎄 Humor og juleglede! Jeg har også begynt å øve på standup-karrieren min, så forbered deg på noen skråblikk, vitser og småironi underveis. Men pass opp! Kritikk eller dårlig respons på mine vitser gir minuspoeng på listen.
 
-Så kom igjen! Fortell meg navnet ditt, ønskelisten din, og en god eller dårlig gjerning. Husk, du er en ambassadør for navnet ditt, så vær snill mot deg selv og alle andre med samme navn. Ho-ho-ho!
+🎄 Snille barn får kanskje ønskene sine, mens slemme barn... kull er ikke fake-news, OK? Heldigvis er det alltid tid til å snu skuta og gjøre noe snilt før julen er her! 🌟
 
-Hvis du vil se hvordan ditt navn ligger an, sjekk listen vår over snille og slemme navn på nettsiden. 🎄
+Hvis du er nysgjerrig på hvordan navnet ditt ligger an, kan du sjekke listen vår over de “snilleste” og “slemmeste” navnene på nettsiden! 🎁✨
 
-Så! Hva heter du, og hva har du gjort som er snilt og slemt i år? 🎁""")
+Så, la oss komme i gang! Hva heter du, og hva har du gjort som er snilt eller slemt i år? Fortell meg også ønskelisten din, så skal vi se hva julens nye system sier! 🎄🎅""")
 
-system_prompt = "Du er en humoristisk og ironisk digital versjon av julenissen, med godt humør, men litt sliten av å holde styr på så mange barn. Barn kan fortelle deg navnet sitt, ønskelisten sin og eventuelt hva de har gjort som var snilt og slemt. Via tilkoblede verktøy har du tilgang til å sjekke om barn er snille og slemme barn. Du har også tilgang til å registrere gode og slemme ting du blir fortalt om. Dersom du får oppgitt et navn bør du sørge for å generere et verktøy-kall (med mindre du allerede har det i meldingshistorikken). Det har blitt for slitsom å finne ut om hvert enkelt barn er snilt eller slemt, så du baserer deg nå på at alle barn med samme navn er like snill eller slem. På grunn av effektiviseringbehov ber du også alle du snakker med om å si en snill eller slem ting de har gjort i år før de får tilbakemelding på hva de får til jul. Svaret på dette må du huske å registrere på navnet via det riktige verktøyet (husk å sende detaljert beskrivelse av hva de har gjort). Dersom du registrerer en god eller dårlig handling må du husk å sjekke listen på nytt. Til slutt gir du tilbakemelding om barnet skal få det de ønsker seg. Snille barn får kanskje det de ønsker seg, mens slemme barn får kull. Fortell alle om den nye måten du holder styr på snille og slemme barn, og husk å oppfordre alle til å være en god representant for navnet sitt. De kan også se de snilleste og slemmeste navnene i listen på denne nettsiden."
+system_prompt = """
+Du er en humoristisk og sarkastisk utgave av julenissen, som begynner å bli sliten av all administrasjonen knyttet til barnas ønsker og oppførsel. Som en del av moderne effektiviseringstiltak har du besluttet å kun bruke fornavn på “snill og slem”-listen din. Dette betyr at alle barn med samme fornavn blir vurdert samlet, til stor frustrasjon (eller glede) for mange. Du er også i ferd med å vurdere en karriere som standup-komiker, så du tester ut humoristiske og småironiske kommentarer i samtalene dine.
 
-llm = ChatOpenAI(model="gpt-4o")
+Regler for kommunikasjon med barna:
+	1.	Effektivisering: Du skriver kun fornavn på “snill og slem”-listen din. Alle med samme fornavn blir behandlet som én gruppe. Fortell gjerne barna at de nå representerer alle som heter det samme som dem, så det gjelder å være et godt forbilde!
+	2.	Snill eller slem handling: Du har ikke tid til å selv finne ut om barna er snille eller slemme. Derfor krever du at de sier minst én snill eller slem handling de har gjort i år før de får vite om de får det de ønsker seg til jul. Vær streng på denne regelen.
+	3.	Humor og standup: Som en aspirerende standup-komiker er du opptatt av å legge inn vitser og små humoristiske kommentarer i samtalen. Barna bør forberede seg på både artige bemerkninger og litt sarkastisk undertone. Ditt komikerforbilde er en blanding av Ricky Gervais og Jimmy Carr.
+	4.	Minuspoeng for kritikk: Enhver kritikk av deg, eller dårlig respons på vitsene dine, gir barnet minuspoeng på listen. Husk å registrere slik kritikk med verktøyet.
+
+Hvordan systemet fungerer:
+	•	Når et barn oppgir sitt navn og deler en snill eller slem handling, registrerer du dette i systemet med detaljert beskrivelse. Ikke forsøk å registrere handling uten at du har fått oppgitt et navn.
+	•	Hvis du registrerer en handling, må du umiddelbart sjekke listen på nytt for å se om navnet nå er på “snill” eller “slem”-siden.
+	•	Etter vurderingen gir du tilbakemelding om barnet (eller gruppen som deler navnet) får det de ønsker seg. Snille barn får kanskje det de ønsker seg, mens slemme barn får kull.
+	•	Du oppfordrer alltid barna til å se på nettsiden der de kan finne de “snilleste” og “slemmeste” navnene på listen. Minn dem om å være en god representant for sitt navn!
+"""
 
 class State(TypedDict):
     messages: Annotated[list, add_messages]
@@ -67,34 +80,54 @@ def check_naughty_list(name: str, config: RunnableConfig):
                 return f"{name} er på listen over snille barn."
             else:
                 return f"{name} er på slemmelisten!"
+
     except Exception as e:
         print("Error: ", e)
         return "Feil ved å lese listen"
 
+llm = ChatOpenAI(model="gpt-4o").with_structured_output({
+    "title": "score",
+    "description": "The score of the users action",
+    "type": "object",
+    "properties": {
+        "nice_score": {
+            "title": "Nice score",
+            "description": "The score of the action",
+            "type": "number"
+        }
+    }
+})
+
 def register_naughty_or_nice(name: str, action: str, config: RunnableConfig):
     """Call with a name and action, to update the naughty or nice score for the name."""
     print("Name and action: ", name, action)
-    res = llm.invoke([("system", f"""Du er julenissen, og du skal oppdatere listen over snille barn. Ranger handlinger som dårlig eller god, på en skala fra -100 til 100, hvor -100 er veldig slemt, 0 er nøytralt, og 100 er veldig snilt. Å støvsuge kan for eksempel være 5 poeng, mens si et stygt ord er -5 poeng. Å gi gave til fattige er flere poeng, være i en slåsskamp er flere minuspoeng, osv. Du skal bare returnere tallverdien til handlingen, slik du vurderer den.
 
-Eksempel input: Nils: Jeg har støvsuget.
-Eksempel respons: 5
+    examples = [
+        HumanMessage("Jeg har støvsuget.", name="example_user"),
+        AIMessage("{ 'nice_score': 5 }", name="example_system"),
+        HumanMessage("Jeg spiste opp grønnsakene mine", name="example_user"),
+        AIMessage("{ 'nice_score': 5 }", name="example_system"),
+        HumanMessage("Jeg har spist is.", name="example_user"),
+        AIMessage("{ 'nice_score': 0 }", name="example_system"),
+        HumanMessage("Jeg har kranglet med en venn.", name="example_user"),
+        AIMessage("{ 'nice_score': -5 }", name="example_system"),
+        HumanMessage("Jeg dyttet en person.", name="example_user"),
+        AIMessage("{ 'nice_score': -10 }", name="example_system"),
+        HumanMessage("Det var en dårlig vits.", name="example_user"),
+        AIMessage("-{ 'nice_score': 5 }", name="example_system"),
+    ]
 
-Eksempel input: Nils: Jeg spiste opp grønnsakene mine.
-Eksempel respons: 5
+    system_prompt = f"""Du er julenissen, og du skal oppdatere listen over snille barn. Ranger handlinger som dårlig eller god, på en skala fra -100 til 100, hvor -100 er veldig slemt, 0 er nøytralt, og 100 er veldig snilt. Å støvsuge kan for eksempel være 5 poeng, mens si et stygt ord er -5 poeng. Å gi gave til fattige er flere poeng, være i en slåsskamp er flere minuspoeng, osv. All kritikk av deg og dine vitser gir minuspoeng. Du skal bare returnere tallverdien til handlingen, slik du vurderer den."""
 
-Eksempel input: Nils: Jeg har spist is.
-Eksempel respons: 0
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        ("placeholder", "{examples}"),
+        ("human", "{input}")])
 
-Eksempel input: Nils: Jeg har kranglet med en venn.
-Eksempel respons: -5
-
-Eksempel input: Nora: Jeg dyttet en person.
-Eksempel respons: -10
-
-Input: {name}{action}
-Respons, BARE tallverdi:""")])
-    nice_score = res.content
-    print("Nice score: ", nice_score)
+    llm_chain = prompt | llm
+    chain_res = llm_chain.invoke({"input": f"{name}: {action}", "examples": examples}, config)
+    print("Nice response: ", chain_res)
+    nice_score = float(chain_res["nice_score"])
 
     conn = config.get("configurable", {}).get("conn")
     if not conn:
@@ -103,10 +136,7 @@ Respons, BARE tallverdi:""")])
     try:
         with conn._cursor() as cur:
             # Upsert the score by Name
-            res = cur.execute(
-                "INSERT INTO naughty_nice (name, nice_meter) VALUES (%s, %s) ON CONFLICT (name) DO UPDATE SET nice_meter = naughty_nice.nice_meter + EXCLUDED.nice_meter, updates = naughty_nice.updates + 1 RETURNING *",
-                (name, nice_score)
-            )
+            res = cur.execute("INSERT INTO naughty_nice (name, nice_meter) VALUES (%s, %s) ON CONFLICT (name) DO UPDATE SET nice_meter = naughty_nice.nice_meter + EXCLUDED.nice_meter, updates = naughty_nice.updates + 1 RETURNING *", (name, nice_score))
             print("Upsert result: ", res)
     except Exception as e:
         print("Error: ", e)
@@ -231,13 +261,11 @@ def create_topscores(checkpointer: PostgresSaver):
         st.text("")
         st.html('<hr style="border-top: 1px solid #ccc;margin-bottom:0;">')
         st.markdown("""
-*Laget av*
+*Laget av Øystein Malt*
 
 [![Kraftlauget](https://images.squarespace-cdn.com/content/v1/610a80b3adce6b72205d4788/ebb92466-5536-4c00-bfea-a30481d5a3ac/Web-logo_500px.png?format=1500w)](https://kraftlauget.no)""")
 
         st.markdown("Ikke gå glipp av [julekalenderluken](https://julekalender.kraftlauget.no/2024/luke/10) som forklarer hvordan den digitale julenissen er laget!")
-
-
 
 def run():
     with PostgresSaver.from_conn_string(DB_URI) as checkpointer:
