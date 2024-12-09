@@ -4,11 +4,12 @@ import streamlit as st
 from typing import Annotated
 from typing_extensions import TypedDict
 
+from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.checkpoint.postgres import PostgresSaver
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import AIMessage, HumanMessage
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import StateGraph, START
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.graph.message import add_messages
@@ -148,14 +149,6 @@ tool_node = ToolNode(tools)
 
 llm_with_tools = ChatOpenAI(model="gpt-4o").bind_tools(tools)
 
-def should_call_tool(state: State):
-    messages = state["messages"]
-    last_message = messages[-1]
-    if not last_message.tool_calls:
-        return END
-    print("Tool calls:", last_message.tool_calls)
-    return "tools"
-
 def santa(state: State, config: RunnableConfig):
     response = llm_with_tools.invoke(
             [("system", system_prompt), *state["messages"]],
@@ -170,8 +163,7 @@ graph_builder.add_node("tools", tool_node)
 
 # Add edges
 graph_builder.add_edge(START, "santa")
-graph_builder.add_conditional_edges(
-        "santa", should_call_tool, {"tools": "tools", END: END, })
+graph_builder.add_conditional_edges("santa", tools_condition)
 graph_builder.add_edge("tools", "santa")
 
 def get_response(graph: CompiledStateGraph, user_input: str, thread_id: str, checkpointer: PostgresSaver):
