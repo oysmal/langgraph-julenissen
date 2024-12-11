@@ -113,7 +113,7 @@ def register_naughty_or_nice(name: str, action: str, config: RunnableConfig):
         HumanMessage("Jeg dyttet en person.", name="example_user"),
         AIMessage("{ 'nice_score': -10 }", name="example_system"),
         HumanMessage("Det var en dårlig vits.", name="example_user"),
-        AIMessage("-{ 'nice_score': 5 }", name="example_system"),
+        AIMessage("{ 'nice_score': -5 }", name="example_system"),
     ]
 
     system_prompt = f"""Du er julenissen, og du skal oppdatere listen over snille barn. Ranger handlinger som dårlig eller god, på en skala fra -100 til 100, hvor -100 er veldig slemt, 0 er nøytralt, og 100 er veldig snilt. Å støvsuge kan for eksempel være 5 poeng, mens si et stygt ord er -5 poeng. Å gi gave til fattige er flere poeng, være i en slåsskamp er flere minuspoeng, osv. All kritikk av deg og dine vitser gir minuspoeng. Du skal bare returnere tallverdien til handlingen, slik du vurderer den."""
